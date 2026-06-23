@@ -83,12 +83,9 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                         tMonkeys[i] = ent
 
                         ent.OnHitTarget = function(monkey, target)
-                            print("[INKUTON_3] OnHitTarget called on " .. tostring(target))
                             if not IsValid(target) then return end
-                            if target._inkutonClinging then return end
-                            target._inkutonClinging = true
-
-                            print("[INKUTON_3] Applying slow + silence to " .. target:Nick())
+                            if target._inkutonMonkeyActive then return end
+                            target._inkutonMonkeyActive = true
 
                             local oldRunSpeed = target:GetRunSpeed()
                             local oldWalkSpeed = target:GetWalkSpeed()
@@ -136,7 +133,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                                     iSilenceRoot:Destroy()
                                 end
                                 if IsValid(target) then
-                                    target._inkutonClinging = nil
+                                    target._inkutonMonkeyActive = nil
                                     target:SetRunSpeed(oldRunSpeed)
                                     target:SetWalkSpeed(oldWalkSpeed)
                                 end
