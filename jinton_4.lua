@@ -153,6 +153,8 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                     if not IsValid(eCube) then return end
                     eCube:SetAngles(vecDirection:Angle())
 
+                    local bHasHit = false
+
                     timer.Create("jinton4_cube_move_"..eCube:EntIndex(), 0, 0, function()
                         if not IsValid(eCube) then
                             timer.Remove("jinton4_cube_move_"..eCube:EntIndex())
@@ -165,6 +167,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                             if IsValid(eEnt) and eEnt:IsPlayer() and eEnt ~= pOwner then
                                 if eEnt.AdminMode and eEnt:AdminMode() then continue end
                                 timer.Remove("jinton4_cube_move_"..eCube:EntIndex())
+                                bHasHit = true
                                 if eCube.OnHit then
                                     eCube:OnHit(eEnt)
                                 end
@@ -174,6 +177,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                     end)
 
                     timer.Simple(5, function()
+                        if bHasHit then return end
                         timer.Remove("jinton4_cube_move_"..(IsValid(eCube) and eCube:EntIndex() or 0))
                         if IsValid(eCube) then
                             SafeRemoveEntity(eCube)
