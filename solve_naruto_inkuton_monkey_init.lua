@@ -18,6 +18,9 @@ function ENT:Initialize()
     self:SetHealth(self.PuppetHealth)
     
     self.HitPlayers = {}
+    self.bAttached = false
+    self.iTicksDone = 0
+    self.flNextTick = 0
 end
 
 function ENT:Setup(pPlayer, iSide)
@@ -43,7 +46,20 @@ function ENT:Think()
         return
     end
 
-    if self:GetIsAttached() then
+    if self.bAttached then
+        if IsValid(self.eHitTarget) and self.iTicksDone < 3 and CurTime() >= self.flNextTick then
+            self.iTicksDone = self.iTicksDone + 1
+            self.flNextTick = CurTime() + 1
+
+            local dmg = DamageInfo()
+            dmg:SetDamage(10)
+            dmg:SetAttacker(pOwner)
+            dmg:SetInflictor(self)
+            dmg:SetDamageType(DMG_GENERIC)
+            self.eHitTarget:TakeDamageInfo(dmg)
+            self.eHitTarget:EmitSound("geams/solve_jutsu/inkuton/solve_inkuton_geams_03_monkey.wav")
+        end
+
         self:NextThink(CurTime())
         return true
     end
@@ -63,20 +79,65 @@ function ENT:Think()
             if eEnt:AdminMode() then continue end
             
             self.HitPlayers[eEnt] = true
+            self.bAttached = true
+            self.eHitTarget = eEnt
+            self.flNextTick = CurTime() + 1
+            self.iTicksDone = 0
 
             self:SetIsAttached(true)
             self:SetTarget(eEnt)
+            self:SetHasAttacked(true)
+
+            self:SetSolid(SOLID_NONE)
+            self:SetMoveType(MOVETYPE_NONE)
+
+            local boneName = "ValveBiped.Bip01_Spine2"
+            if self._monkeyIndex == 2 then
+                boneName = "ValveBiped.Bip01_L_UpperArm"
+            elseif self._monkeyIndex == 3 then
+                boneName = "ValveBiped.Bip01_R_UpperArm"
+            end
+            local boneId = eEnt:LookupBone(boneName) or 0
+            self:FollowBone(eEnt, boneId)
+            self:SetLocalPos(Vector(0, 0, 0))
+            self:SetLocalAngles(Angle(0, 0, 0))
+
+            if not eEnt._inkutonClinging then
+                eEnt._inkutonClinging = true
+
+                eEnt:addBuff("slow", { slow = 0.5, duration = 4 })
+                eEnt:addBuff("silence", { duration = 4 })
+
+                if SERVER then
+                    net.Start("inkuton_singe_particle")
+                    net.WriteEntity(eEnt)
+                    net.WriteFloat(4)
+                    net.Broadcast()
+                end
+
+                timer.Create("inkuton_stun_"..eEnt:EntIndex(), 0.1, 40, function()
+                    if not IsValid(eEnt) then
+                        timer.Remove("inkuton_stun_"..eEnt:EntIndex())
+                        return
+                    end
+                    eEnt:addBuff("slow", { slow = 0.5, duration = 0.5 })
+                    eEnt:addBuff("silence", { duration = 0.5 })
+                end)
+
+                timer.Simple(4, function()
+                    timer.Remove("inkuton_stun_"..eEnt:EntIndex())
+                    if IsValid(eEnt) then
+                        eEnt._inkutonClinging = nil
+                        eEnt:removeBuff("slow")
+                        eEnt:removeBuff("silence")
+                    end
+                end)
+            end
 
             if pOwner.ExecParticle then
                 pOwner:ExecParticle("solve_inkuton_dog_impact_big", eEnt:GetPos(), Angle(0, 0, 0), nil)
             end
             self:EmitSound("geams/solve_jutsu/inkuton/solve_inkuton_geams_01_impact.wav")
-            
-            self:SetHasAttacked(true)
-
-            if self.OnHitTarget then
-                self:OnHitTarget(eEnt)
-            end
 
             return true
         end

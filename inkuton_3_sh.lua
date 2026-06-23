@@ -18,14 +18,8 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
             local ply = self:GetOwner()
             ply:addBuff("inkuton")
 
-            local tMonkeyDamage = {[1] = 130, [2] = 160, [3] = 200}
-            local iDamage = tMonkeyDamage[nLevel] or 130
             local iDuration = E_Value(IDENTIFIER, "duration_level_"..nLevel, 10)
-            local iTickRate = E_Value(IDENTIFIER, "tick_rate_level_"..nLevel, 1)
-            local iWallhackDuration = E_Value(IDENTIFIER, "wallhack_duration_level_"..nLevel, 10)
             local iSpeed = E_Value(IDENTIFIER, "speed_level_"..nLevel, 250)
-            local iJumpDistance = E_Value(IDENTIFIER, "jump_distance_level_"..nLevel, 100)
-            local iSlow = E_Value(IDENTIFIER, "slow_level_"..nLevel, 0.3)
             local iCastTime = E_Value(IDENTIFIER, "cast_time_level_"..nLevel, 0.1)
             if not ply:AddChakra(-iChakra) then return end
 
@@ -67,15 +61,6 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                     end
                 end
 
-                local tMonkeys = {}
-                local iSilenceDuration = 4
-
-                local tClingBones = {
-                    [1] = "ValveBiped.Bip01_Spine2",
-                    [2] = "ValveBiped.Bip01_L_UpperArm",
-                    [3] = "ValveBiped.Bip01_R_UpperArm",
-                }
-
                 for i = 1, 3 do
                     timer.Simple((i-1) * 0.05, function()
                         local ent = ents.Create("solve_naruto_inkuton_monkey")
@@ -84,13 +69,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                         ent:SetAngles(angles)
                         ent:Spawn()
                         ent:SetDuration(iDuration)
-                        ent.Damage = 0
-                        ent.TickRate = iTickRate
-                        ent.WallhackDuration = iWallhackDuration
                         ent.Speed = iSpeed
-                        ent.Slow = iSlow
-                        ent.JumpDistance = iJumpDistance
-                        ent.tMonkeyGroup = tMonkeys
                         ent._monkeyIndex = i
 
                         if IsValid(pTarget) then
@@ -98,80 +77,11 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                         end
 
                         ent:SetAttachConfig(i)
-                        tMonkeys[i] = ent
-
-                        ent.OnHitTarget = function(monkey, target)
-                            if not IsValid(target) then return end
-
-                            local boneName = tClingBones[monkey._monkeyIndex] or "ValveBiped.Bip01_Spine2"
-                            local boneId = target:LookupBone(boneName) or 0
-                            monkey:SetSolid(SOLID_NONE)
-                            monkey:SetMoveType(MOVETYPE_NONE)
-                            monkey:FollowBone(target, boneId)
-                            monkey:SetLocalPos(Vector(0, 0, 0))
-                            monkey:SetLocalAngles(Angle(0, 0, 0))
-
-                            if target._inkutonClinging then return end
-                            target._inkutonClinging = true
-
-                            target:addBuff("slow", { slow = 0.5, duration = iSilenceDuration })
-                            target:addBuff("silence", { duration = iSilenceDuration })
-
-                            if SERVER then
-                                net.Start("inkuton_singe_particle")
-                                net.WriteEntity(target)
-                                net.WriteFloat(iSilenceDuration)
-                                net.Broadcast()
-                            end
-
-                            timer.Create("inkuton_stun_"..target:EntIndex(), 0.1, iSilenceDuration * 10, function()
-                                if not IsValid(target) then
-                                    timer.Remove("inkuton_stun_"..target:EntIndex())
-                                    return
-                                end
-                                target:addBuff("slow", { slow = 0.5, duration = 0.5 })
-                                target:addBuff("silence", { duration = 0.5 })
-                            end)
-
-                            local iTickDamage = 10
-                            local tTickDelays = { 1, 2, 3 }
-                            for tickIdx, fDelay in ipairs(tTickDelays) do
-                                timer.Simple(fDelay, function()
-                                    if not IsValid(target) then return end
-                                    if not IsValid(ply) then return end
-                                    local monkeyHitter = tMonkeys[tickIdx]
-                                    local dmg = DamageInfo()
-                                    dmg:SetAttacker(ply)
-                                    dmg:SetInflictor(IsValid(monkeyHitter) and monkeyHitter or ply)
-                                    dmg:SetDamage(iTickDamage)
-                                    dmg:SetDamageType(DMG_GENERIC)
-                                    target:TakeDamageInfo(dmg)
-                                    if IsValid(target) then
-                                        target:EmitSound("geams/solve_jutsu/inkuton/solve_inkuton_geams_03_monkey.wav")
-                                    end
-                                end)
-                            end
-
-                            timer.Simple(iSilenceDuration, function()
-                                timer.Remove("inkuton_stun_"..target:EntIndex())
-
-                                if IsValid(target) then
-                                    target._inkutonClinging = nil
-                                    target:removeBuff("slow")
-                                    target:removeBuff("silence")
-                                end
-
-                                for _, mk in pairs(tMonkeys) do
-                                    if IsValid(mk) then
-                                        SafeRemoveEntity(mk)
-                                    end
-                                end
-                            end)
-                        end
-
-                        SafeRemoveEntityDelayed(ent, iSilenceDuration)
+                        SafeRemoveEntityDelayed(ent, 4)
                     end)
                 end
+
+                fEnd()
             end)
         end
 
