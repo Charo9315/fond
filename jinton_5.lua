@@ -131,7 +131,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                     pOwner.eLaser:SetDistance(iLaserSize)
                     pOwner.eLaser:SetLaserDistance(iLaserDistance)
                     pOwner.eLaser:SetLaserHull(iLaserHull)
-                    pOwner.eLaser:SetDamage(iLaserDamage)
+                    pOwner.eLaser:SetDamage(0)
 
                     self:Timer(0.0, function()
 
@@ -171,6 +171,28 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                                     net.WritePlayer(pOwner)
                                 net.SendPVS(pOwner:GetPos())
                                 return
+                            end
+
+                            local vecLaserStart = pOwner:EyePos()
+                            local vecLaserDir = pOwner:GetAimVector()
+                            local tLaserTrace = util.TraceHull({
+                                start = vecLaserStart,
+                                endpos = vecLaserStart + vecLaserDir * iLaserDistance,
+                                filter = pOwner,
+                                mins = Vector(-iLaserHull, -iLaserHull, -iLaserHull),
+                                maxs = Vector(iLaserHull, iLaserHull, iLaserHull),
+                            })
+
+                            if tLaserTrace.Hit and IsValid(tLaserTrace.Entity) and tLaserTrace.Entity:IsPlayer() then
+                                local eVictim = tLaserTrace.Entity
+                                if eVictim ~= pOwner and not (eVictim.AdminMode and eVictim:AdminMode()) then
+                                    local dmg = DamageInfo()
+                                    dmg:SetAttacker(pOwner)
+                                    dmg:SetInflictor(IsValid(pOwner.eLaser) and pOwner.eLaser or pOwner)
+                                    dmg:SetDamage(iLaserDamage)
+                                    dmg:SetDamageType(DMG_GENERIC)
+                                    eVictim:TakeDamageInfo(dmg)
+                                end
                             end
 
                         end)
