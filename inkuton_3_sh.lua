@@ -61,6 +61,8 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                     end
                 end
 
+                local tMonkeys = {}
+
                 for i = 1, 3 do
                     timer.Simple((i-1) * 0.05, function()
                         local ent = ents.Create("solve_naruto_inkuton_monkey")
@@ -69,6 +71,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                         ent:SetAngles(angles)
                         ent:Spawn()
                         ent:SetDuration(iDuration)
+                        ent.Damage = 0
                         ent.Speed = iSpeed
                         ent._monkeyIndex = i
 
@@ -77,6 +80,68 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                         end
 
                         ent:SetAttachConfig(i)
+                        tMonkeys[i] = ent
+
+                        ent.OnHitTarget = function(monkey, target)
+                            if not IsValid(target) then return end
+                            if target._inkutonClinging then return end
+                            target._inkutonClinging = true
+
+                            local oldRunSpeed = target:GetRunSpeed()
+                            local oldWalkSpeed = target:GetWalkSpeed()
+                            target:SetRunSpeed(20)
+                            target:SetWalkSpeed(20)
+
+                            local iSilenceRoot = EF_SILENCE_AND_ROOT(target)
+
+                            timer.Create("inkuton_speed_"..target:EntIndex(), 0.1, 40, function()
+                                if not IsValid(target) then
+                                    timer.Remove("inkuton_speed_"..target:EntIndex())
+                                    return
+                                end
+                                target:SetRunSpeed(20)
+                                target:SetWalkSpeed(20)
+                            end)
+
+                            if SERVER then
+                                net.Start("inkuton_singe_particle")
+                                net.WriteEntity(target)
+                                net.WriteFloat(4)
+                                net.Broadcast()
+                            end
+
+                            for tickIdx = 1, 3 do
+                                timer.Simple(tickIdx, function()
+                                    if not IsValid(target) then return end
+                                    if not IsValid(ply) then return end
+                                    local dmg = DamageInfo()
+                                    dmg:SetAttacker(ply)
+                                    dmg:SetInflictor(IsValid(tMonkeys[tickIdx]) and tMonkeys[tickIdx] or ply)
+                                    dmg:SetDamage(10)
+                                    dmg:SetDamageType(DMG_GENERIC)
+                                    target:TakeDamageInfo(dmg)
+                                    target:EmitSound("geams/solve_jutsu/inkuton/solve_inkuton_geams_03_monkey.wav")
+                                end)
+                            end
+
+                            timer.Simple(4, function()
+                                timer.Remove("inkuton_speed_"..target:EntIndex())
+                                if IsValid(iSilenceRoot) then
+                                    iSilenceRoot:Destroy()
+                                end
+                                if IsValid(target) then
+                                    target._inkutonClinging = nil
+                                    target:SetRunSpeed(oldRunSpeed)
+                                    target:SetWalkSpeed(oldWalkSpeed)
+                                end
+                                for _, mk in pairs(tMonkeys) do
+                                    if IsValid(mk) then
+                                        SafeRemoveEntity(mk)
+                                    end
+                                end
+                            end)
+                        end
+
                         SafeRemoveEntityDelayed(ent, 5)
                     end)
                 end
