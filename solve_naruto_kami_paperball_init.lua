@@ -14,6 +14,16 @@ function ENT:Initialize()
     self.ImpactDamage = self.ImpactDamage or 25
 end
 
+hook.Add("EntityTakeDamage", "Kami1:GlobalDebuff", function(eTarget, oDmgInfo)
+    if not IsValid(eTarget) then return end
+    if not eTarget:IsPlayer() then return end
+    local flDebuff = eTarget:GetNWFloat("Kami1:DamageDebuff", 0)
+    if flDebuff <= 0 then return end
+    local flEnd = eTarget:GetNWFloat("Kami1:DebuffEnd", 0)
+    if CurTime() > flEnd then return end
+    oDmgInfo:SetDamage(oDmgInfo:GetDamage() * flDebuff)
+end)
+
 function ENT:OnImpact(col)
     local pOwner = self:GetOwner()
     local vHitPos = col.HitPos or self:GetPos()
@@ -38,25 +48,19 @@ function ENT:OnImpact(col)
                 local fBuffDuration = self.BuffDuration or 10
                 local fDebuffPercent = self.DebuffPercent or 1.4
 
-                local sHookName = "Kami1:Debuff:" .. pHitEnt:SteamID64()
-
                 if IsValid(pOwner) then
                     pOwner:SetNWEntity("Kami1:LinkedTarget", pHitEnt)
                     pOwner:SetNWFloat("Kami1:LinkedEnd", CurTime() + fBuffDuration)
                 end
 
-                hook.Add("EntityTakeDamage", sHookName, function(eTarget, oDmgInfo)
-                    if not IsValid(pHitEnt) then
-                        hook.Remove("EntityTakeDamage", sHookName)
-                        return
-                    end
-                    if eTarget ~= pHitEnt then return end
-                    local flDmg = oDmgInfo:GetDamage()
-                    oDmgInfo:SetDamage(flDmg * fDebuffPercent)
-                end)
+                pHitEnt:SetNWFloat("Kami1:DamageDebuff", fDebuffPercent)
+                pHitEnt:SetNWFloat("Kami1:DebuffEnd", CurTime() + fBuffDuration)
 
                 timer.Simple(fBuffDuration, function()
-                    hook.Remove("EntityTakeDamage", sHookName)
+                    if IsValid(pHitEnt) then
+                        pHitEnt:SetNWFloat("Kami1:DamageDebuff", 0)
+                        pHitEnt:SetNWFloat("Kami1:DebuffEnd", 0)
+                    end
                     if IsValid(pOwner) then
                         pOwner:SetNWEntity("Kami1:LinkedTarget", NULL)
                         pOwner:SetNWFloat("Kami1:LinkedEnd", 0)
