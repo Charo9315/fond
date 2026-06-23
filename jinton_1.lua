@@ -123,13 +123,23 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                             local vecNewPos = eCube:GetPos() + vecDirection * iPropulseVelocity * FrameTime()
                             eCube:SetPos(vecNewPos)
 
+                            local bHit = false
                             for _, eEnt in ipairs(ents.FindInSphere(eCube:GetPos(), 64)) do
                                 if IsValid(eEnt) and eEnt:IsPlayer() and eEnt ~= pOwner then
                                     if eEnt.AdminMode and eEnt:AdminMode() then continue end
                                     if eCube.OnHit then
                                         eCube:OnHit(eEnt)
                                     end
+                                    bHit = true
                                 end
+                            end
+
+                            if bHit and IsValid(eCube) then
+                                timer.Remove("jinton_cube_move_"..eCube:EntIndex())
+                                if eCube.OnExplode then
+                                    eCube:OnExplode()
+                                end
+                                SafeRemoveEntity(eCube)
                             end
                         end)
 
