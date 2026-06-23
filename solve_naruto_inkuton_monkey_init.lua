@@ -105,8 +105,7 @@ function ENT:Think()
             if not eEnt._inkutonClinging then
                 eEnt._inkutonClinging = true
 
-                eEnt:addBuff("slow", { slow = 0.5, duration = 4 })
-                eEnt:addBuff("silence", { duration = 4 })
+                local iSilenceRoot = EF_SILENCE_AND_ROOT(eEnt)
 
                 if SERVER then
                     net.Start("inkuton_singe_particle")
@@ -115,21 +114,12 @@ function ENT:Think()
                     net.Broadcast()
                 end
 
-                timer.Create("inkuton_stun_"..eEnt:EntIndex(), 0.1, 40, function()
-                    if not IsValid(eEnt) then
-                        timer.Remove("inkuton_stun_"..eEnt:EntIndex())
-                        return
-                    end
-                    eEnt:addBuff("slow", { slow = 0.5, duration = 0.5 })
-                    eEnt:addBuff("silence", { duration = 0.5 })
-                end)
-
                 timer.Simple(4, function()
-                    timer.Remove("inkuton_stun_"..eEnt:EntIndex())
+                    if IsValid(iSilenceRoot) then
+                        iSilenceRoot:Destroy()
+                    end
                     if IsValid(eEnt) then
                         eEnt._inkutonClinging = nil
-                        eEnt:removeBuff("slow")
-                        eEnt:removeBuff("silence")
                     end
                 end)
             end
