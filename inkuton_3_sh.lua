@@ -84,7 +84,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                         ent:SetAngles(angles)
                         ent:Spawn()
                         ent:SetDuration(iDuration)
-                        ent.Damage = iDamage
+                        ent.Damage = 0
                         ent.TickRate = iTickRate
                         ent.WallhackDuration = iWallhackDuration
                         ent.Speed = iSpeed
