@@ -39,27 +39,7 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
             local iRadiusMultiplier = E_Value("raiton_divine", "radius_multiplier_level_"..nLevel, 1)
 
             local pOwner = self:GetOwner()
-            local iSilenceAndRoot = nil
             if not pOwner:AddChakra(-iChakra) then return end
-            if pOwner:OnGround() then
-                iSilenceAndRoot = EF_SILENCE_AND_ROOT(pOwner)
-            else
-                local groundCheckHookName = "raiton_kirin:GroundCheck:" .. pOwner:EntIndex()
-                hook.Add("Think", groundCheckHookName, function()
-                    if not IsValid(pOwner) or not pOwner:Alive() then
-                        if IsValid(iSilenceAndRoot) then iSilenceAndRoot:Destroy() end
-                        hook.Remove("Think", groundCheckHookName)
-                        return
-                    end
-
-                    if pOwner:OnGround() then
-                        if not iSilenceAndRoot then
-                            iSilenceAndRoot = EF_SILENCE_AND_ROOT(pOwner)
-                        end
-                        hook.Remove("Think", groundCheckHookName)
-                    end
-                end)
-            end
 
             local iLeftHand = pOwner:LookupBone("ValveBiped.Bip01_L_Hand")
             if not iLeftHand then return end
@@ -70,9 +50,6 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
 
             pOwner:ExecSound("geams/solve_fast_mudra.wav")
             pOwner:RestartAnimationGesture("nrp_ninjutsu_trow_kirin", nil, GESTURE_SLOT_VCD, 3)
-
-            net.Start("Solve.Naruto.ScreenDarken.Start")
-            net.Send(pOwner)
             pOwner:EmitSound("ambient/atmosphere/thunder"..math.random(1,4)..".wav", 110, 90)
 
             -- Capture aim position immediately on press
@@ -84,113 +61,94 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
             })
             local vecSpawnPoint = tTrace.HitPos + Vector(0, 0, 10)
 
-            -- Auto-fire after a short delay (single press, no hold needed)
-            timer.Simple(0.5, function()
-                if not IsValid(pOwner) or not pOwner:Alive() then
-                    hook.Remove("Think", "raiton_kirin:GroundCheck:" .. pOwner:EntIndex())
-                    if IsValid(iSilenceAndRoot) then iSilenceAndRoot:Destroy() end
-                    return
-                end
+            pOwner:StopJParticle("solve_raiton_punch_hand_big")
 
-                net.Start("Solve.Naruto.ScreenDarken.Stop")
-                net.Send(pOwner)
-                pOwner:EmitSound("natures/raiton/assaut_hit.wav", 75, 100, 0.5)
+            local iLeftHand2 = pOwner:LookupBone("ValveBiped.Bip01_L_Hand")
+            if not iLeftHand2 then return end
+            pOwner:JParticle("solve_raiton_kirin_trail", nil, nil, 0.5, true, iLeftHand2)
 
-                hook.Remove("Think", "raiton_kirin:GroundCheck:" .. pOwner:EntIndex())
-                if IsValid(iSilenceAndRoot) then iSilenceAndRoot:Destroy() end
+            -- Spawn particle box at aimed position
+            local eParticleBox = ents.Create("prop_dynamic")
+            if not IsValid(eParticleBox) then
+                eParticleBox = ents.Create("info_target")
+            end
+            if IsValid(eParticleBox) then
+                eParticleBox:SetModel("models/hunter/blocks/cube1x1x1.mdl")
+                eParticleBox:SetPos(vecSpawnPoint)
+                eParticleBox:Spawn()
+                eParticleBox:Activate()
+                eParticleBox:SetMoveType(MOVETYPE_NONE)
+                eParticleBox:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+                eParticleBox:SetRenderMode(RENDERMODE_TRANSCOLOR)
+                eParticleBox:SetColor(Color(0, 0, 0, 0))
+            end
 
-                pOwner:StopJParticle("solve_raiton_punch_hand_big")
+            local tTraceUp = util.TraceLine({
+                start = vecSpawnPoint,
+                endpos = vecSpawnPoint + Vector(0, 0, 900),
+                mask = MASK_NPCWORLDSTATIC,
+            })
 
-                local iLeftHand = pOwner:LookupBone("ValveBiped.Bip01_L_Hand")
-                if not iLeftHand then return end
-                pOwner:JParticle("solve_raiton_kirin_trail", nil, nil, 0.5, true, iLeftHand)
-
-                -- Use prop_dynamic instead of prop_physics to avoid issues
-                -- when prop_physics is blocked on the server
-                local eParticleBox = ents.Create("prop_dynamic")
-                if not IsValid(eParticleBox) then
-                    -- Fallback: use a simple entity if prop_dynamic also fails
-                    eParticleBox = ents.Create("info_target")
-                end
+            local eDragon = ents.Create("solve_naruto_hyoton_dragon")
+            if IsValid(eDragon) then
+                eDragon:SetModel("models/solve/billy/kirinsolve.mdl")
+                eDragon:SetPos(tTraceUp.HitPos)
+                eDragon:Spawn()
+                eDragon:Activate()
+                eDragon:DropToFloor()
+                eDragon:SetMoveType(MOVETYPE_NONE)
                 if IsValid(eParticleBox) then
-                    eParticleBox:SetModel("models/hunter/blocks/cube1x1x1.mdl")
-                    eParticleBox:SetPos(vecSpawnPoint)
-                    eParticleBox:Spawn()
-                    eParticleBox:Activate()
-                    eParticleBox:SetMoveType(MOVETYPE_NONE)
-                    eParticleBox:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
-                    eParticleBox:SetRenderMode(RENDERMODE_TRANSCOLOR)
-                    eParticleBox:SetColor(Color(0, 0, 0, 0))
+                    eDragon:SetParent(eParticleBox)
                 end
+                eDragon:SetModelScale(2, 0.00001)
 
-                local tTraceUp = util.TraceLine({
-                    start = vecSpawnPoint,
-                    endpos = vecSpawnPoint + Vector(0, 0, 900),
-                    mask = MASK_NPCWORLDSTATIC,
-                })
+                ParticleEffectAttach("solve_raiton_kirin_trail_animal", PATTACH_ABSORIGIN_FOLLOW, eDragon, 0)
+            end
 
-                local eDragon = ents.Create("solve_naruto_hyoton_dragon")
-                if IsValid(eDragon) then
-                    eDragon:SetModel("models/solve/billy/kirinsolve.mdl")
-                    eDragon:SetPos(tTraceUp.HitPos)
-                    eDragon:Spawn()
-                    eDragon:Activate()
-                    eDragon:DropToFloor()
-                    eDragon:SetMoveType(MOVETYPE_NONE)
-                    if IsValid(eParticleBox) then
-                        eDragon:SetParent(eParticleBox)
+            if IsValid(eParticleBox) then
+                eParticleBox:EmitSound("geams/solve_jutsu/solve_kirin_geams.wav")
+            end
+            ParticleEffect("solve_kirin_cloud", tTraceUp.HitPos, Angle(0, 0, 0), eParticleBox)
+
+            self:Timer(0, function()
+                if not IsValid(eDragon) then return end
+
+                eDragon:ResetSequence(eDragon:LookupSequence("sk_wep_eff_kirin_01_anim"))
+
+                -- Wait for animation to finish, then apply damage/stun/particles
+                self:Timer(1.8, function()
+                    if not IsValid(eParticleBox) then fEnd() return end
+
+                    eParticleBox:EmitSound("eljaunito/solve/jutsu/raiton/raiton1.wav")
+                    ParticleEffectAttach("solve_raiton_kirin_bigimpact_floor", 4, eParticleBox, 4)
+
+                    util.ScreenShake(vecSpawnPoint, 30, 30, 4, 3500, true)
+
+                    for _, eEntity in ipairs(ents.FindInSphere(vecSpawnPoint, iRadiusZone * iRadiusMultiplier)) do
+                        if eEntity == pOwner then continue end
+                        if not eEntity:IsPlayer() then continue end
+                        if eEntity:AdminMode() then continue end
+
+                        eEntity:TakeDamage(iDamage * iMultiplierDamage, pOwner, self.eWeapon)
+                        eEntity:ExecSound("eljaunito/solve/jutsu/raiton/raiton1.wav")
+                        eEntity:RestartAnimationGesture("nrp_beaten_burn_type01", true, GESTURE_SLOT_VCD)
+                        EF_STUN(eEntity, iStun * iStunMultiplier)
+
+                        net.Start("Solve.Naruto.Skills.ImpactFX")
+                        net.WriteEntity(pOwner)
+                        net.WriteEntity(eEntity)
+                        net.Send(eEntity)
                     end
-                    eDragon:SetModelScale(2, 0.00001)
 
-                    ParticleEffectAttach("solve_raiton_kirin_trail_animal", PATTACH_ABSORIGIN_FOLLOW, eDragon, 0)
-                end
-
-                if IsValid(eParticleBox) then
-                    eParticleBox:EmitSound("geams/solve_jutsu/solve_kirin_geams.wav")
-                end
-                ParticleEffect("solve_kirin_cloud", tTraceUp.HitPos, Angle(0, 0, 0), eParticleBox)
-
-
-                self:Timer(0, function()
-                    if not IsValid(eDragon) then return end
-
-                    eDragon:ResetSequence(eDragon:LookupSequence("sk_wep_eff_kirin_01_anim"))
-
-                    -- Wait for animation to finish, then apply damage/stun/particles
-                    self:Timer(1.8, function()
-                        if not IsValid(eParticleBox) then fEnd() return end
-
-                        eParticleBox:EmitSound("eljaunito/solve/jutsu/raiton/raiton1.wav")
-                        ParticleEffectAttach("solve_raiton_kirin_bigimpact_floor", 4, eParticleBox, 4)
-
-                        util.ScreenShake(vecSpawnPoint, 30, 30, 4, 3500, true)
-
-                        for _, eEntity in ipairs(ents.FindInSphere(vecSpawnPoint, iRadiusZone * iRadiusMultiplier)) do
-                            if eEntity == pOwner then continue end
-                            if not eEntity:IsPlayer() then continue end
-                            if eEntity:AdminMode() then continue end
-
-                            eEntity:TakeDamage(iDamage * iMultiplierDamage, pOwner, self.eWeapon)
-                            eEntity:ExecSound("eljaunito/solve/jutsu/raiton/raiton1.wav")
-                            eEntity:RestartAnimationGesture("nrp_beaten_burn_type01", true, GESTURE_SLOT_VCD)
-                            EF_STUN(eEntity, iStun * iStunMultiplier)
-
-                            net.Start("Solve.Naruto.Skills.ImpactFX")
-                            net.WriteEntity(pOwner)
-                            net.WriteEntity(eEntity)
-                            net.Send(eEntity)
-                        end
-
-                        self:Timer(0.25, function()
-                            SafeRemoveEntity(eDragon)
-                        end)
-
-                        self:Timer(5, function()
-                            SafeRemoveEntity(eParticleBox)
-                        end)
-
-                        fEnd()
+                    self:Timer(0.25, function()
+                        SafeRemoveEntity(eDragon)
                     end)
+
+                    self:Timer(5, function()
+                        SafeRemoveEntity(eParticleBox)
+                    end)
+
+                    fEnd()
                 end)
             end)
 
