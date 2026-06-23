@@ -133,7 +133,6 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                                 target:addBuff("silence", { duration = 0.5 })
                             end)
 
-                            -- 10 damage per tick, 3 ticks every 1 second
                             local iTickDamage = 10
                             local tTickDelays = { 1, 2, 3 }
                             for tickIdx, fDelay in ipairs(tTickDelays) do

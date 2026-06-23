@@ -43,7 +43,6 @@ function ENT:Think()
         return
     end
 
-    -- If already attached to target, stop moving
     if self:GetIsAttached() then
         self:NextThink(CurTime())
         return true
@@ -65,11 +64,9 @@ function ENT:Think()
             
             self.HitPlayers[eEnt] = true
 
-            -- Set attached state
             self:SetIsAttached(true)
             self:SetTarget(eEnt)
 
-            -- Impact effect
             if pOwner.ExecParticle then
                 pOwner:ExecParticle("solve_inkuton_dog_impact_big", eEnt:GetPos(), Angle(0, 0, 0), nil)
             end
@@ -77,7 +74,6 @@ function ENT:Think()
             
             self:SetHasAttacked(true)
 
-            -- Call OnHitTarget callback for damage ticks and silence
             if self.OnHitTarget then
                 self:OnHitTarget(eEnt)
             end
