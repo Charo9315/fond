@@ -89,7 +89,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                             if target._inkutonClinging then return end
                             target._inkutonClinging = true
 
-                            local iSilenceRoot = EF_SILENCE_AND_ROOT(target)
+                            target:addBuff("slow", { slow = 0.9, duration = 4 })
 
                             if SERVER then
                                 net.Start("inkuton_singe_particle")
@@ -114,11 +114,9 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                             end
 
                             timer.Simple(4, function()
-                                if IsValid(iSilenceRoot) then
-                                    iSilenceRoot:Destroy()
-                                end
                                 if IsValid(target) then
                                     target._inkutonClinging = nil
+                                    target:removeBuff("slow")
                                 end
                                 for _, mk in pairs(tMonkeys) do
                                     if IsValid(mk) then
