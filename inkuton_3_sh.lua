@@ -83,16 +83,17 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                         tMonkeys[i] = ent
 
                         ent.OnHitTarget = function(monkey, target)
+                            print("[INKUTON_3] OnHitTarget called on " .. tostring(target))
                             if not IsValid(target) then return end
                             if target._inkutonClinging then return end
                             target._inkutonClinging = true
+
+                            print("[INKUTON_3] Applying slow + silence to " .. target:Nick())
 
                             local oldRunSpeed = target:GetRunSpeed()
                             local oldWalkSpeed = target:GetWalkSpeed()
                             target:SetRunSpeed(20)
                             target:SetWalkSpeed(20)
-
-                            local iSilenceRoot = EF_SILENCE_AND_ROOT(target)
 
                             timer.Create("inkuton_speed_"..target:EntIndex(), 0.1, 40, function()
                                 if not IsValid(target) then
@@ -102,6 +103,11 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                                 target:SetRunSpeed(20)
                                 target:SetWalkSpeed(20)
                             end)
+
+                            local bSilenceOk, iSilenceRoot = pcall(EF_SILENCE_AND_ROOT, target)
+                            if not bSilenceOk then
+                                print("[INKUTON_3] EF_SILENCE_AND_ROOT failed: " .. tostring(iSilenceRoot))
+                            end
 
                             if SERVER then
                                 net.Start("inkuton_singe_particle")
@@ -126,7 +132,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
 
                             timer.Simple(4, function()
                                 timer.Remove("inkuton_speed_"..target:EntIndex())
-                                if IsValid(iSilenceRoot) then
+                                if bSilenceOk and IsValid(iSilenceRoot) then
                                     iSilenceRoot:Destroy()
                                 end
                                 if IsValid(target) then
