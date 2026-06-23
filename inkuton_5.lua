@@ -25,7 +25,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
             local tStunDuration = {[1] = 1.5, [2] = 2, [3] = 3}
             local iDamage = tWarriorDamage[nLevel] or 250
             local iSpeed = E_Value(IDENTIFIER, "speed_level_"..nLevel, 750)
-            local iStunDuration = E_Value(IDENTIFIER, "stun_duration_level_"..nLevel, tStunDuration[nLevel])
+            local iStunDuration = tStunDuration[nLevel]
 
             local iWallhackDuration = E_Value(IDENTIFIER, "wallhack_duration_level_"..nLevel, 10)
 
