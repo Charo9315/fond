@@ -89,8 +89,21 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                             if target._inkutonClinging then return end
                             target._inkutonClinging = true
 
-                            target:addBuff("slow", { slow = 0.3, duration = 4 })
-                            target:addBuff("silence", { duration = 4 })
+                            local oldRunSpeed = target:GetRunSpeed()
+                            local oldWalkSpeed = target:GetWalkSpeed()
+                            target:SetRunSpeed(20)
+                            target:SetWalkSpeed(20)
+
+                            local iSilenceRoot = EF_SILENCE_AND_ROOT(target)
+
+                            timer.Create("inkuton_move_"..target:EntIndex(), 0, 0, function()
+                                if not IsValid(target) then
+                                    timer.Remove("inkuton_move_"..target:EntIndex())
+                                    return
+                                end
+                                target:SetRunSpeed(20)
+                                target:SetWalkSpeed(20)
+                            end)
 
                             if SERVER then
                                 net.Start("inkuton_singe_particle")
@@ -98,15 +111,6 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                                 net.WriteFloat(4)
                                 net.Broadcast()
                             end
-
-                            timer.Create("inkuton_silence_"..target:EntIndex(), 0.1, 40, function()
-                                if not IsValid(target) then
-                                    timer.Remove("inkuton_silence_"..target:EntIndex())
-                                    return
-                                end
-                                target:addBuff("slow", { slow = 0.3, duration = 0.5 })
-                                target:addBuff("silence", { duration = 0.5 })
-                            end)
 
                             local iTickDamage = 10
                             for tickIdx = 1, 3 do
@@ -124,11 +128,14 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                             end
 
                             timer.Simple(4, function()
-                                timer.Remove("inkuton_silence_"..target:EntIndex())
+                                timer.Remove("inkuton_move_"..target:EntIndex())
+                                if IsValid(iSilenceRoot) then
+                                    iSilenceRoot:Destroy()
+                                end
                                 if IsValid(target) then
                                     target._inkutonClinging = nil
-                                    target:removeBuff("slow")
-                                    target:removeBuff("silence")
+                                    target:SetRunSpeed(oldRunSpeed)
+                                    target:SetWalkSpeed(oldWalkSpeed)
                                 end
                                 for _, mk in pairs(tMonkeys) do
                                     if IsValid(mk) then
