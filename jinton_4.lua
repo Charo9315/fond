@@ -13,7 +13,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
             local iProjectionVelocity = E_Value(IDENTIFIER, "projection_velocity_"..nLevel, 1000)
             local tDmgHit = {[1] = 50, [2] = 70, [3] = 100}
             local iDamageHit = tDmgHit[nLevel] or 250
-            local iTickHit = E_Value(IDENTIFIER, "tick_hit_"..nLevel, 0.01)
+            local iTickHit = E_Value(IDENTIFIER, "tick_hit_"..nLevel, 1)
             local tTickDmg = {[1] = 5, [2] = 10, [3] = 15}
             local iTickHitDamage = tTickDmg[nLevel] or 3
             local iTickHitCount = E_Value(IDENTIFIER, "tick_hit_count_"..nLevel, 10)
