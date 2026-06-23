@@ -102,26 +102,37 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
 
                         local vecDirection = (tTraceHit.HitPos - vecEye):GetNormalized()
 
-                        self:Timer(0.1, function()
+                        eCube:SetParent(NULL)
+                        eCube:SetMoveType(MOVETYPE_NOCLIP)
+                        eCube:SetPos(vecEye + vecDirection*100)
+                        eCube:SetAngles(vecDirection:Angle())
+
+                        timer.Simple(0.1, function()
                             if IsValid(eCube) then
                                 eCube:SetMultiplicator(1)
                             end
                         end)
 
-                        eCube:SetParent(NULL)
-                        eCube:SetPos(vecEye + vecDirection*100)
-                        eCube:SetAngles(vecDirection:Angle())
+                        timer.Create("jinton_cube_move_"..eCube:EntIndex(), 0, 0, function()
+                            if not IsValid(eCube) then
+                                timer.Remove("jinton_cube_move_"..eCube:EntIndex())
+                                return
+                            end
+                            local vecNewPos = eCube:GetPos() + vecDirection * iPropulseVelocity * FrameTime()
+                            eCube:SetPos(vecNewPos)
 
-                        local oPhys = eCube:GetPhysicsObject()
-                        if IsValid(oPhys) then
-                            oPhys:EnableGravity(false)
-                            oPhys:EnableMotion(true)
-                            oPhys:SetDragCoefficient(0)
-                            oPhys:SetAngleDragCoefficient(0)
-                            oPhys:SetVelocity(vecDirection * iPropulseVelocity ^ 2)
-                        end
+                            for _, eEnt in ipairs(ents.FindInSphere(eCube:GetPos(), 64)) do
+                                if IsValid(eEnt) and eEnt:IsPlayer() and eEnt ~= pOwner then
+                                    if eEnt.AdminMode and eEnt:AdminMode() then continue end
+                                    if eCube.OnHit then
+                                        eCube:OnHit(eEnt)
+                                    end
+                                end
+                            end
+                        end)
 
                         self:Timer(5, function()
+                            timer.Remove("jinton_cube_move_"..eCube:EntIndex())
                             if IsValid(eCube) then
                                 eCube:Explode()
                                 eCube:Remove()
