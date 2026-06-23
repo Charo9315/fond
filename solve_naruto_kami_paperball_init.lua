@@ -14,15 +14,7 @@ function ENT:Initialize()
     self.ImpactDamage = self.ImpactDamage or 25
 end
 
-hook.Add("EntityTakeDamage", "Kami1:GlobalDebuff", function(eTarget, oDmgInfo)
-    if not IsValid(eTarget) then return end
-    if not eTarget:IsPlayer() then return end
-    local flDebuff = eTarget:GetNWFloat("Kami1:DamageDebuff", 0)
-    if flDebuff <= 0 then return end
-    local flEnd = eTarget:GetNWFloat("Kami1:DebuffEnd", 0)
-    if CurTime() > flEnd then return end
-    oDmgInfo:SetDamage(oDmgInfo:GetDamage() * flDebuff)
-end)
+
 
 function ENT:OnImpact(col)
     local pOwner = self:GetOwner()
@@ -46,20 +38,33 @@ function ENT:OnImpact(col)
                 pHitEnt:TakeDamageInfo(dmginfo)
 
                 local fBuffDuration = self.BuffDuration or 10
-                local fDebuffPercent = self.DebuffPercent or 1.4
+                local fDebuffPercent = 1.1
 
                 if IsValid(pOwner) then
                     pOwner:SetNWEntity("Kami1:LinkedTarget", pHitEnt)
                     pOwner:SetNWFloat("Kami1:LinkedEnd", CurTime() + fBuffDuration)
                 end
 
-                pHitEnt:SetNWFloat("Kami1:DamageDebuff", fDebuffPercent)
-                pHitEnt:SetNWFloat("Kami1:DebuffEnd", CurTime() + fBuffDuration)
+                pHitEnt._Kami1DebuffMul = fDebuffPercent
+                pHitEnt._Kami1DebuffEnd = CurTime() + fBuffDuration
+
+                hook.Add("EntityTakeDamage", "Kami1:GlobalDebuff", function(eTarget, oDmgInfo)
+                    if not IsValid(eTarget) then return end
+                    if not eTarget:IsPlayer() then return end
+                    if not eTarget._Kami1DebuffMul then return end
+                    if eTarget._Kami1DebuffMul <= 1 then return end
+                    if CurTime() > (eTarget._Kami1DebuffEnd or 0) then
+                        eTarget._Kami1DebuffMul = nil
+                        eTarget._Kami1DebuffEnd = nil
+                        return
+                    end
+                    oDmgInfo:ScaleDamage(eTarget._Kami1DebuffMul)
+                end)
 
                 timer.Simple(fBuffDuration, function()
                     if IsValid(pHitEnt) then
-                        pHitEnt:SetNWFloat("Kami1:DamageDebuff", 0)
-                        pHitEnt:SetNWFloat("Kami1:DebuffEnd", 0)
+                        pHitEnt._Kami1DebuffMul = nil
+                        pHitEnt._Kami1DebuffEnd = nil
                     end
                     if IsValid(pOwner) then
                         pOwner:SetNWEntity("Kami1:LinkedTarget", NULL)
