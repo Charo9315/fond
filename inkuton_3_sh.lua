@@ -89,7 +89,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                             if target._inkutonClinging then return end
                             target._inkutonClinging = true
 
-                            target:addBuff("slow", { slow = 0.9, duration = 4 })
+                            target:addBuff("slow", { slow = 0.3, duration = 4 })
                             target:addBuff("silence", { duration = 4 })
 
                             if SERVER then
@@ -104,7 +104,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                                     timer.Remove("inkuton_silence_"..target:EntIndex())
                                     return
                                 end
-                                target:addBuff("slow", { slow = 0.9, duration = 0.5 })
+                                target:addBuff("slow", { slow = 0.3, duration = 0.5 })
                                 target:addBuff("silence", { duration = 0.5 })
                             end)
 
