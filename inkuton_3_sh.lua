@@ -20,6 +20,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
 
             local iDuration = E_Value(IDENTIFIER, "duration_level_"..nLevel, 10)
             local iSpeed = E_Value(IDENTIFIER, "speed_level_"..nLevel, 250)
+            local iWallhackDuration = E_Value(IDENTIFIER, "wallhack_duration_level_"..nLevel, 10)
             local iCastTime = E_Value(IDENTIFIER, "cast_time_level_"..nLevel, 0.1)
             if not ply:AddChakra(-iChakra) then return end
 
@@ -61,6 +62,8 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                     end
                 end
 
+                local tMonkeys = {}
+
                 for i = 1, 3 do
                     timer.Simple((i-1) * 0.05, function()
                         local ent = ents.Create("solve_naruto_inkuton_monkey")
@@ -70,6 +73,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                         ent:Spawn()
                         ent:SetDuration(iDuration)
                         ent.Speed = iSpeed
+                        ent.WallhackDuration = iWallhackDuration
                         ent._monkeyIndex = i
 
                         if IsValid(pTarget) then
@@ -77,7 +81,54 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                         end
 
                         ent:SetAttachConfig(i)
-                        SafeRemoveEntityDelayed(ent, 4)
+                        tMonkeys[i] = ent
+
+                        ent.OnHitTarget = function(monkey, target)
+                            if not IsValid(target) then return end
+
+                            if target._inkutonClinging then return end
+                            target._inkutonClinging = true
+
+                            local iSilenceRoot = EF_SILENCE_AND_ROOT(target)
+
+                            if SERVER then
+                                net.Start("inkuton_singe_particle")
+                                net.WriteEntity(target)
+                                net.WriteFloat(4)
+                                net.Broadcast()
+                            end
+
+                            local iTickDamage = 10
+                            for tickIdx = 1, 3 do
+                                timer.Simple(tickIdx, function()
+                                    if not IsValid(target) then return end
+                                    if not IsValid(ply) then return end
+                                    local dmg = DamageInfo()
+                                    dmg:SetAttacker(ply)
+                                    dmg:SetInflictor(IsValid(tMonkeys[tickIdx]) and tMonkeys[tickIdx] or ply)
+                                    dmg:SetDamage(iTickDamage)
+                                    dmg:SetDamageType(DMG_GENERIC)
+                                    target:TakeDamageInfo(dmg)
+                                    target:EmitSound("geams/solve_jutsu/inkuton/solve_inkuton_geams_03_monkey.wav")
+                                end)
+                            end
+
+                            timer.Simple(4, function()
+                                if IsValid(iSilenceRoot) then
+                                    iSilenceRoot:Destroy()
+                                end
+                                if IsValid(target) then
+                                    target._inkutonClinging = nil
+                                end
+                                for _, mk in pairs(tMonkeys) do
+                                    if IsValid(mk) then
+                                        SafeRemoveEntity(mk)
+                                    end
+                                end
+                            end)
+                        end
+
+                        SafeRemoveEntityDelayed(ent, 5)
                     end)
                 end
 

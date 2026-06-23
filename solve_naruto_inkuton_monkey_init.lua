@@ -3,147 +3,93 @@ AddCSLuaFile("shared.lua")
 include("shared.lua")
 
 function ENT:Initialize()
-    self:SetModel(self.PhysicsModel)
-    self:PhysicsInit(SOLID_VPHYSICS)
+    self:SharedInitialize()
+    self:SetModel("models/hunter/blocks/cube025x025x025.mdl")
     self:SetMoveType(MOVETYPE_NOCLIP)
-    self:SetSolid(SOLID_BBOX)
-    self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+    self:SetSolid(SOLID_NONE)
     self:SetNoDraw(true)
     self:DrawShadow(false)
-    
+
+    self:SetIsAttached(false)
+    self:SetIsJumping(false)
+    self:SetIsOnGround(true)
     self:SetStamp(CurTime())
-    self:SetSide(1)
-    
-    self:SetMaxHealth(self.PuppetHealth)
-    self:SetHealth(self.PuppetHealth)
-    
-    self.HitPlayers = {}
-    self.bAttached = false
-    self.iTicksDone = 0
-    self.flNextTick = 0
+    self:SetDuration(self.Duration or 10)
+
+    self.Speed = self.Speed or 75
+    self.Damage = self.Damage or 10
 end
 
-function ENT:Setup(pPlayer, iSide)
+function ENT:Setup(pPlayer, eTarget)
     if not IsValid(pPlayer) then return end
-    
+
     self:SetOwner(pPlayer)
-    
-    if iSide then
-        self:SetSide(iSide)
-    end
-    
-    local tConfig = self.Config[self:GetSide()] or self.Config[1]
-    local flOffset = tConfig.sideOffset or 0
-    
-    self:SetPos(pPlayer:GetPos() + pPlayer:GetRight() * flOffset + pPlayer:GetForward() * 50)
+    self:SetPos(pPlayer:GetPos() + pPlayer:GetForward() * 50)
     self:SetAngles(pPlayer:GetAngles())
+
+    if IsValid(eTarget) then
+        self:SetTarget(eTarget)
+    end
 end
 
 function ENT:Think()
     local pOwner = self:GetOwner()
-    if not IsValid(pOwner) then
-        self:Remove()
-        return
-    end
+    local eTarget = self:GetTarget()
 
-    if self.bAttached then
-        if IsValid(self.eHitTarget) and self.iTicksDone < 3 and CurTime() >= self.flNextTick then
-            self.iTicksDone = self.iTicksDone + 1
-            self.flNextTick = CurTime() + 1
-
-            local dmg = DamageInfo()
-            dmg:SetDamage(10)
-            dmg:SetAttacker(pOwner)
-            dmg:SetInflictor(self)
-            dmg:SetDamageType(DMG_GENERIC)
-            self.eHitTarget:TakeDamageInfo(dmg)
-            self.eHitTarget:EmitSound("geams/solve_jutsu/inkuton/solve_inkuton_geams_03_monkey.wav")
+    if self:GetIsAttached() then
+        if IsValid(eTarget) then
+            self:SetPos(eTarget:GetPos())
         end
-
         self:NextThink(CurTime())
         return true
     end
-    
-    if not self.Direction then
-        self.Direction = self:GetAngles():Forward()
-    end
-    
+
     local vecPos = self:GetPos()
-    local flSpeed = self.Speed or 250
-    
-    local vecNewPos = vecPos + self.Direction * flSpeed * FrameTime()
-    self:SetPos(vecNewPos)
-    
-    for _, eEnt in ipairs(ents.FindInSphere(vecNewPos, self.Radius or 128)) do
-        if IsValid(eEnt) and eEnt:IsPlayer() and eEnt ~= pOwner and not self.HitPlayers[eEnt] then
-            if eEnt:AdminMode() then continue end
-            
-            self.HitPlayers[eEnt] = true
-            self.bAttached = true
-            self.eHitTarget = eEnt
-            self.flNextTick = CurTime() + 1
-            self.iTicksDone = 0
+    local vecDir
+    local flSpeed = self.Speed or 75
 
+    if IsValid(eTarget) then
+        local vecTargetPos = eTarget:GetPos() + Vector(0, 0, 40)
+        vecDir = (vecTargetPos - vecPos):GetNormalized()
+        local flDist = vecPos:Distance(vecTargetPos)
+
+        if flDist < 50 then
             self:SetIsAttached(true)
-            self:SetTarget(eEnt)
-            self:SetHasAttacked(true)
+            self:SetNWString("MonkeyAnim", "customman_attack_ssp_brushscroll_ride_loop_monkey.001")
 
-            self:SetSolid(SOLID_NONE)
-            self:SetMoveType(MOVETYPE_NONE)
-
-            local boneName = "ValveBiped.Bip01_Spine2"
-            if self._monkeyIndex == 2 then
-                boneName = "ValveBiped.Bip01_L_UpperArm"
-            elseif self._monkeyIndex == 3 then
-                boneName = "ValveBiped.Bip01_R_UpperArm"
-            end
-            local boneId = eEnt:LookupBone(boneName) or 0
-            self:FollowBone(eEnt, boneId)
-            self:SetLocalPos(Vector(0, 0, 0))
-            self:SetLocalAngles(Angle(0, 0, 0))
-
-            if not eEnt._inkutonClinging then
-                eEnt._inkutonClinging = true
-
-                local iSilenceRoot = EF_SILENCE_AND_ROOT(eEnt)
-
-                if SERVER then
-                    net.Start("inkuton_singe_particle")
-                    net.WriteEntity(eEnt)
-                    net.WriteFloat(4)
-                    net.Broadcast()
+            if self.WallhackDuration and self.WallhackDuration > 0 and IsValid(pOwner) then
+                eTarget:SetNWFloat("Inkuton:Wallhack:" .. pOwner:SteamID64(), CurTime() + self.WallhackDuration)
+                if eTarget.addBuff then
+                    eTarget:addBuff("inkuton_draw", self.WallhackDuration)
                 end
-
-                timer.Simple(4, function()
-                    if IsValid(iSilenceRoot) then
-                        iSilenceRoot:Destroy()
-                    end
-                    if IsValid(eEnt) then
-                        eEnt._inkutonClinging = nil
-                    end
-                end)
             end
 
-            if pOwner.ExecParticle then
-                pOwner:ExecParticle("solve_inkuton_dog_impact_big", eEnt:GetPos(), Angle(0, 0, 0), nil)
+            if self.OnHitTarget then
+                self:OnHitTarget(eTarget)
             end
-            self:EmitSound("geams/solve_jutsu/inkuton/solve_inkuton_geams_01_impact.wav")
 
-            return true
+            return
         end
+    else
+        vecDir = self:GetAngles():Forward()
     end
-    
+
+    if vecDir then
+        local flActualSpeed = math.max(flSpeed, 500)
+        local vecNewPos = vecPos + vecDir * flActualSpeed * FrameTime()
+        self:SetPos(vecNewPos)
+        self:SetAngles(vecDir:Angle())
+    end
+
     self:NextThink(CurTime())
     return true
 end
 
-function ENT:OnTakeDamage(dmginfo)
-    self:SetHealth(self:Health() - dmginfo:GetDamage())
-    
-    if self:Health() <= 0 then
-        self:Remove()
-    end
-end
-
 function ENT:OnRemove()
+    if self.info then
+        self.info:SetParent(nil)
+        SafeRemoveEntityDelayed(self.info, 1)
+    end
+
+    self:EmitSound("npc/antlion_grub/squashed.wav")
 end
