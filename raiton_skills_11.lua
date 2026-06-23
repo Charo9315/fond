@@ -95,12 +95,18 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
                 eDragon:SetPos(tTraceUp.HitPos)
                 eDragon:Spawn()
                 eDragon:Activate()
-                eDragon:DropToFloor()
                 eDragon:SetMoveType(MOVETYPE_NONE)
+                eDragon:SetModelScale(2, 0.00001)
+
+                -- Play animation before parenting
+                local iSeq = eDragon:LookupSequence("sk_wep_eff_kirin_01_anim")
+                eDragon:ResetSequence(iSeq)
+                eDragon:SetPlaybackRate(1)
+                eDragon:SetCycle(0)
+
                 if IsValid(eParticleBox) then
                     eDragon:SetParent(eParticleBox)
                 end
-                eDragon:SetModelScale(2, 0.00001)
 
                 ParticleEffectAttach("solve_raiton_kirin_trail_animal", PATTACH_ABSORIGIN_FOLLOW, eDragon, 0)
             end
@@ -110,46 +116,40 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
             end
             ParticleEffect("solve_kirin_cloud", tTraceUp.HitPos, Angle(0, 0, 0), eParticleBox)
 
-            self:Timer(0, function()
-                if not IsValid(eDragon) then return end
+            -- Wait for animation to finish, then apply damage/stun/particles
+            self:Timer(1.8, function()
+                if not IsValid(eParticleBox) then fEnd() return end
 
-                eDragon:ResetSequence(eDragon:LookupSequence("sk_wep_eff_kirin_01_anim"))
+                eParticleBox:EmitSound("eljaunito/solve/jutsu/raiton/raiton1.wav")
+                ParticleEffectAttach("solve_raiton_kirin_bigimpact_floor", 4, eParticleBox, 4)
 
-                -- Wait for animation to finish, then apply damage/stun/particles
-                self:Timer(1.8, function()
-                    if not IsValid(eParticleBox) then fEnd() return end
+                util.ScreenShake(vecSpawnPoint, 30, 30, 4, 3500, true)
 
-                    eParticleBox:EmitSound("eljaunito/solve/jutsu/raiton/raiton1.wav")
-                    ParticleEffectAttach("solve_raiton_kirin_bigimpact_floor", 4, eParticleBox, 4)
+                for _, eEntity in ipairs(ents.FindInSphere(vecSpawnPoint, iRadiusZone * iRadiusMultiplier)) do
+                    if eEntity == pOwner then continue end
+                    if not eEntity:IsPlayer() then continue end
+                    if eEntity:AdminMode() then continue end
 
-                    util.ScreenShake(vecSpawnPoint, 30, 30, 4, 3500, true)
+                    eEntity:TakeDamage(iDamage * iMultiplierDamage, pOwner, self.eWeapon)
+                    eEntity:ExecSound("eljaunito/solve/jutsu/raiton/raiton1.wav")
+                    eEntity:RestartAnimationGesture("nrp_beaten_burn_type01", true, GESTURE_SLOT_VCD)
+                    EF_STUN(eEntity, iStun * iStunMultiplier)
 
-                    for _, eEntity in ipairs(ents.FindInSphere(vecSpawnPoint, iRadiusZone * iRadiusMultiplier)) do
-                        if eEntity == pOwner then continue end
-                        if not eEntity:IsPlayer() then continue end
-                        if eEntity:AdminMode() then continue end
+                    net.Start("Solve.Naruto.Skills.ImpactFX")
+                    net.WriteEntity(pOwner)
+                    net.WriteEntity(eEntity)
+                    net.Send(eEntity)
+                end
 
-                        eEntity:TakeDamage(iDamage * iMultiplierDamage, pOwner, self.eWeapon)
-                        eEntity:ExecSound("eljaunito/solve/jutsu/raiton/raiton1.wav")
-                        eEntity:RestartAnimationGesture("nrp_beaten_burn_type01", true, GESTURE_SLOT_VCD)
-                        EF_STUN(eEntity, iStun * iStunMultiplier)
-
-                        net.Start("Solve.Naruto.Skills.ImpactFX")
-                        net.WriteEntity(pOwner)
-                        net.WriteEntity(eEntity)
-                        net.Send(eEntity)
-                    end
-
-                    self:Timer(0.25, function()
-                        SafeRemoveEntity(eDragon)
-                    end)
-
-                    self:Timer(5, function()
-                        SafeRemoveEntity(eParticleBox)
-                    end)
-
-                    fEnd()
+                self:Timer(0.25, function()
+                    SafeRemoveEntity(eDragon)
                 end)
+
+                self:Timer(5, function()
+                    SafeRemoveEntity(eParticleBox)
+                end)
+
+                fEnd()
             end)
 
         end
