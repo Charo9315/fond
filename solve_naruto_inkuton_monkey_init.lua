@@ -57,16 +57,63 @@ function ENT:Think()
             self:SetIsAttached(true)
             self:SetNWString("MonkeyAnim", "customman_attack_ssp_brushscroll_ride_loop_monkey.001")
 
-            if self.WallhackDuration and self.WallhackDuration > 0 and IsValid(pOwner) then
-                eTarget:SetNWFloat("Inkuton:Wallhack:" .. pOwner:SteamID64(), CurTime() + self.WallhackDuration)
-                if eTarget.addBuff then
-                    eTarget:addBuff("inkuton_draw", self.WallhackDuration)
+            if not eTarget._inkutonClinging then
+                eTarget._inkutonClinging = true
+
+                local oldRunSpeed = eTarget:GetRunSpeed()
+                local oldWalkSpeed = eTarget:GetWalkSpeed()
+                eTarget:SetRunSpeed(20)
+                eTarget:SetWalkSpeed(20)
+
+                local iSilenceRoot = EF_SILENCE_AND_ROOT(eTarget)
+
+                timer.Create("inkuton_speed_"..eTarget:EntIndex(), 0.1, 40, function()
+                    if not IsValid(eTarget) then
+                        timer.Remove("inkuton_speed_"..eTarget:EntIndex())
+                        return
+                    end
+                    eTarget:SetRunSpeed(20)
+                    eTarget:SetWalkSpeed(20)
+                end)
+
+                if SERVER then
+                    net.Start("inkuton_singe_particle")
+                    net.WriteEntity(eTarget)
+                    net.WriteFloat(4)
+                    net.Broadcast()
                 end
+
+                for tickIdx = 1, 3 do
+                    timer.Simple(tickIdx, function()
+                        if not IsValid(eTarget) then return end
+                        if not IsValid(pOwner) then return end
+                        local dmg = DamageInfo()
+                        dmg:SetAttacker(pOwner)
+                        dmg:SetInflictor(IsValid(self) and self or pOwner)
+                        dmg:SetDamage(10)
+                        dmg:SetDamageType(DMG_GENERIC)
+                        eTarget:TakeDamageInfo(dmg)
+                        eTarget:EmitSound("geams/solve_jutsu/inkuton/solve_inkuton_geams_03_monkey.wav")
+                    end)
+                end
+
+                timer.Simple(4, function()
+                    timer.Remove("inkuton_speed_"..eTarget:EntIndex())
+                    if IsValid(iSilenceRoot) then
+                        iSilenceRoot:Destroy()
+                    end
+                    if IsValid(eTarget) then
+                        eTarget._inkutonClinging = nil
+                        eTarget:SetRunSpeed(oldRunSpeed)
+                        eTarget:SetWalkSpeed(oldWalkSpeed)
+                    end
+                end)
             end
 
-            if self.OnHitTarget then
-                self:OnHitTarget(eTarget)
+            if pOwner.ExecParticle then
+                pOwner:ExecParticle("solve_inkuton_dog_impact_big", eTarget:GetPos(), Angle(0, 0, 0), nil)
             end
+            self:EmitSound("geams/solve_jutsu/inkuton/solve_inkuton_geams_01_impact.wav")
 
             return
         end
@@ -90,6 +137,5 @@ function ENT:OnRemove()
         self.info:SetParent(nil)
         SafeRemoveEntityDelayed(self.info, 1)
     end
-
     self:EmitSound("npc/antlion_grub/squashed.wav")
 end
