@@ -98,17 +98,19 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
                 eDragon:SetMoveType(MOVETYPE_NONE)
                 eDragon:SetModelScale(2, 0.00001)
 
-                -- Play animation before parenting
-                local iSeq = eDragon:LookupSequence("sk_wep_eff_kirin_01_anim")
-                eDragon:ResetSequence(iSeq)
-                eDragon:SetPlaybackRate(1)
-                eDragon:SetCycle(0)
-
-                if IsValid(eParticleBox) then
-                    eDragon:SetParent(eParticleBox)
-                end
-
                 ParticleEffectAttach("solve_raiton_kirin_trail_animal", PATTACH_ABSORIGIN_FOLLOW, eDragon, 0)
+
+                -- Play animation next frame so entity is fully initialized
+                timer.Simple(0, function()
+                    if not IsValid(eDragon) then return end
+                    local iSeq = eDragon:LookupSequence("sk_wep_eff_kirin_01_anim")
+                    if iSeq and iSeq >= 0 then
+                        eDragon:SetSequence(iSeq)
+                        eDragon:ResetSequenceInfo()
+                        eDragon:SetPlaybackRate(1)
+                        eDragon:SetCycle(0)
+                    end
+                end)
             end
 
             if IsValid(eParticleBox) then
