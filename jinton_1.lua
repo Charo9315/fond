@@ -102,31 +102,24 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
 
                         local vecDirection = (tTraceHit.HitPos - vecEye):GetNormalized()
 
-                        eCube:SetParent(nil)
+                        self:Timer(0.1, function()
+                            if IsValid(eCube) then
+                                eCube:SetMultiplicator(1)
+                            end
+                        end)
+
+                        eCube:SetParent(NULL)
                         eCube:SetPos(vecEye + vecDirection*100)
                         eCube:SetAngles(vecDirection:Angle())
 
-                        timer.Simple(0, function()
-                            if not IsValid(eCube) then return end
-                            eCube:PhysicsInit(SOLID_VPHYSICS)
-                            eCube:SetMoveType(MOVETYPE_VPHYSICS)
-                            eCube:SetSolid(SOLID_VPHYSICS)
-
-                            local oPhys = eCube:GetPhysicsObject()
-                            if IsValid(oPhys) then
-                                oPhys:EnableGravity(false)
-                                oPhys:EnableMotion(true)
-                                oPhys:SetDragCoefficient(0)
-                                oPhys:SetAngleDragCoefficient(0)
-                                oPhys:SetVelocity(vecDirection * iPropulseVelocity)
-                            end
-
-                            self:Timer(0.1, function()
-                                if IsValid(eCube) then
-                                    eCube:SetMultiplicator(1)
-                                end
-                            end)
-                        end)
+                        local oPhys = eCube:GetPhysicsObject()
+                        if IsValid(oPhys) then
+                            oPhys:EnableGravity(false)
+                            oPhys:EnableMotion(true)
+                            oPhys:SetDragCoefficient(0)
+                            oPhys:SetAngleDragCoefficient(0)
+                            oPhys:SetVelocity(vecDirection * iPropulseVelocity ^ 2)
+                        end
 
                         self:Timer(5, function()
                             if IsValid(eCube) then
