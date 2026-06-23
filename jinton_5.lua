@@ -17,7 +17,7 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
             local iLaserDamage = tLaserDmg5[nLevel] or 300
             local iLaserHull = E_Value(IDENTIFIER, "laser_hull_"..nLevel, 30)
             local iLaserDistance = E_Value(IDENTIFIER, "laser_distance_"..nLevel, 2000)
-            local iLaserTick = E_Value(IDENTIFIER, "laser_tick_"..nLevel, 1)
+            local iLaserTick = 1
             local iFlightSpeed = E_Value(IDENTIFIER, "flight_speed_"..nLevel, 100)
             local iLaserSize = E_Value(IDENTIFIER, "laser_size_"..nLevel, 0.2)
 
