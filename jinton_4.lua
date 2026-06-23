@@ -65,7 +65,10 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                         eCube:SetParent(pVictim)
                         pVictim:GodEnable()
                         local jintonStun = EF_STUN(pVictim, iTickHitCount*iTickHit, true, true)
-                        eCube:GetPhysicsObject():EnableMotion(false)
+                        local oPhys = eCube:GetPhysicsObject()
+                        if IsValid(oPhys) then
+                            oPhys:EnableMotion(false)
+                        end
                         eCube:SetMultiplicator(2.25)
                         eCube.OnHitWorld = function() end
                         eCube.OnHit = function() end
