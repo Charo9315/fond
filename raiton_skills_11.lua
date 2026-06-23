@@ -144,7 +144,7 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
                     if IsValid(eParticleBox) then
                         eDragon:SetParent(eParticleBox)
                     end
-                    eDragon:SetModelScale(4, 0.00001)
+                    eDragon:SetModelScale(2, 0.00001)
 
                     ParticleEffectAttach("solve_raiton_kirin_trail_animal", PATTACH_ABSORIGIN_FOLLOW, eDragon, 0)
                 end
@@ -160,8 +160,9 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
 
                     eDragon:ResetSequence(eDragon:LookupSequence("sk_wep_eff_kirin_01_anim"))
 
+                    -- Wait for animation to finish, then apply damage/stun/particles
                     self:Timer(1.8, function()
-                        if not IsValid(eParticleBox) then return end
+                        if not IsValid(eParticleBox) then fEnd() return end
 
                         eParticleBox:EmitSound("eljaunito/solve/jutsu/raiton/raiton1.wav")
                         ParticleEffectAttach("solve_raiton_kirin_bigimpact_floor", 4, eParticleBox, 4)
@@ -191,10 +192,10 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
                         self:Timer(5, function()
                             SafeRemoveEntity(eParticleBox)
                         end)
+
+                        fEnd()
                     end)
                 end)
-
-                fEnd()
             end)
 
         end
