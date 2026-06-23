@@ -104,6 +104,8 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
 
                         eCube:SetParent(NULL)
                         eCube:SetMoveType(MOVETYPE_NOCLIP)
+                        eCube:SetSolid(SOLID_NONE)
+                        eCube:SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE)
                         eCube:SetPos(vecEye + vecDirection*100)
                         eCube:SetAngles(vecDirection:Angle())
 
