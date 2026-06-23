@@ -75,6 +75,15 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
             net.Send(pOwner)
             pOwner:EmitSound("ambient/atmosphere/thunder"..math.random(1,4)..".wav", 110, 90)
 
+            -- Capture aim position immediately on press
+            local vecEye = pOwner:EyePos()
+            local tTrace = util.TraceLine({
+                start = vecEye,
+                endpos = vecEye + pOwner:GetAimVector()*iRange,
+                filter = {pOwner, "naruto_hitbox", "player"},
+            })
+            local vecSpawnPoint = tTrace.HitPos + Vector(0, 0, 10)
+
             -- Auto-fire after a short delay (single press, no hold needed)
             timer.Simple(0.5, function()
                 if not IsValid(pOwner) or not pOwner:Alive() then
@@ -90,21 +99,11 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
                 hook.Remove("Think", "raiton_kirin:GroundCheck:" .. pOwner:EntIndex())
                 if IsValid(iSilenceAndRoot) then iSilenceAndRoot:Destroy() end
 
-                local vecEye = pOwner:EyePos()
-
-                local tTrace = util.TraceLine({
-                    start = vecEye,
-                    endpos = vecEye + pOwner:GetAimVector()*iRange,
-                    filter = {pOwner, "naruto_hitbox", "player"},
-                })
-
                 pOwner:StopJParticle("solve_raiton_punch_hand_big")
 
                 local iLeftHand = pOwner:LookupBone("ValveBiped.Bip01_L_Hand")
                 if not iLeftHand then return end
                 pOwner:JParticle("solve_raiton_kirin_trail", nil, nil, 0.5, true, iLeftHand)
-
-                local vecSpawnPoint = tTrace.HitPos + Vector(0, 0, 10)
 
                 -- Use prop_dynamic instead of prop_physics to avoid issues
                 -- when prop_physics is blocked on the server
@@ -118,9 +117,6 @@ M_Fight.tConfig.tSkills["raiton_skills_11"] = {
                     eParticleBox:SetPos(vecSpawnPoint)
                     eParticleBox:Spawn()
                     eParticleBox:Activate()
-                    if eParticleBox.DropToFloor then
-                        eParticleBox:DropToFloor()
-                    end
                     eParticleBox:SetMoveType(MOVETYPE_NONE)
                     eParticleBox:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
                     eParticleBox:SetRenderMode(RENDERMODE_TRANSCOLOR)
