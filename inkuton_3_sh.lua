@@ -101,11 +101,6 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
                                 target:SetWalkSpeed(20)
                             end)
 
-                            local bSilenceOk, iSilenceRoot = pcall(EF_SILENCE_AND_ROOT, target)
-                            if not bSilenceOk then
-                                print("[INKUTON_3] EF_SILENCE_AND_ROOT failed: " .. tostring(iSilenceRoot))
-                            end
-
                             if SERVER then
                                 net.Start("inkuton_singe_particle")
                                 net.WriteEntity(target)
@@ -129,9 +124,6 @@ M_Fight.tConfig.tSkills[IDENTIFIER] = {
 
                             timer.Simple(4, function()
                                 timer.Remove("inkuton_speed_"..target:EntIndex())
-                                if bSilenceOk and IsValid(iSilenceRoot) then
-                                    iSilenceRoot:Destroy()
-                                end
                                 if IsValid(target) then
                                     target._inkutonMonkeyActive = nil
                                     target:SetRunSpeed(oldRunSpeed)
