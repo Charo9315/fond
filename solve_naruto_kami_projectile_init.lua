@@ -93,7 +93,18 @@ function ENT:Think()
         fCurSpeed = self.fSpeed or self.Speed or 800
     end
 
-    local vecNewPos = self:GetPos() + vecDir * fCurSpeed * FrameTime()
+    local vecMove = vecDir * fCurSpeed * FrameTime()
+    vecMove.z = 0
+    local vecNewPos = self:GetPos() + vecMove
+
+    local trGround = util.TraceLine({
+        start = vecNewPos + Vector(0, 0, 64),
+        endpos = vecNewPos - Vector(0, 0, 10000),
+        filter = {self, pOwner}
+    })
+    if trGround.Hit then
+        vecNewPos = trGround.HitPos + Vector(0, 0, 5)
+    end
 
     for _, ent in ipairs(ents.FindInSphere(self:GetPos(), 60)) do
         if IsValid(ent) and ent ~= self and ent ~= pOwner and (ent:IsPlayer() or ent:IsNPC()) then
